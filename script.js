@@ -89,11 +89,12 @@ const findings = [];
 contextPatterns.forEach(pattern=>{
 
     const matches = [...text.matchAll(pattern.regex)];
-const value = match[0];
+
     matches.forEach(match=>{
+        const value = match[0];
         if(pattern.name === "Credit Card"){
 
-    const digits = match.replace(/\D/g, "");
+   const digits = value.replace(/\D/g, "");
 
     if(!isValidCreditCard(digits))
         return;
@@ -112,12 +113,7 @@ f.value === (match[2] || match[0])
 return;
 
 }
-if(pattern.name === "Credit Card"){
 
-    if(!isValidCreditCard(match))
-        return;
-
-}
         findings.push({
 
             type:pattern.name,
@@ -143,15 +139,15 @@ if(pattern.name === "Credit Card"){
        const matches = [...text.matchAll(pattern.regex)]; 
 
         if(!matches) return;
-const value = match[0];
-       matches.forEach(match=>{
 
+       matches.forEach(match=>{
+const value = match[0];
     if(pattern.name==="Possible Secret"){
 
-        const hasUpper = /[A-Z]/.test(match);
-        const hasLower = /[a-z]/.test(match);
-        const hasNumber = /\d/.test(match);
-        const hasSymbol = /[^A-Za-z0-9]/.test(match);
+        const hasUpper = /[A-Z]/.test(value);
+        const hasLower = /[a-z]/.test(value);
+        const hasNumber = /\d/.test(value);
+        const hasSymbol = /[^A-Za-z0-9]/.test(value);
       
 
         const score =
@@ -166,7 +162,7 @@ const value = match[0];
     }
 if(
     ignoredWords.includes(
-        match.toLowerCase()
+        value.toLowerCase()
     )
 ){
     return;
@@ -175,7 +171,7 @@ if(
 
                 type: pattern.name,
 
-                value: match,
+                value: value,
 
                 label: pattern.label,
 
