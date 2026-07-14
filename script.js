@@ -146,11 +146,14 @@ if (
 });
 
    const genericContext =
-/\b(password|passwd|pass|pwd|pin|secret|private[_-]?key|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|bearer|jwt|session|cookie|db[_-]?password|database[_-]?url|connection[_-]?string)\b\s*[:=]\s*([^\s"'`;]+)/gi;
+/\b(password|passwd|pwd|pin|secret|private[_-]?key|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|bearer|jwt|session|cookie|db[_-]?password|database[_-]?url|connection[_-]?string|host|hostname|server|database|dbname|user|username|uid|port|sslmode)\b\s*[:=]\s*([^\s"'`;]+)/gi;
 
 for(const match of text.matchAll(genericContext)){
 
-    const value = match[2];
+   const value = (match[2] || "").trim();
+
+if(!value)
+    continue;
     const key = match[1].toLowerCase();
 
 let type = key;
@@ -158,6 +161,17 @@ let type = key;
 if(["password","pass","passwd","pwd","pin"].includes(key)){
     type = "Password";
 }
+else if(["user","username","uid"].includes(key))
+    type = "Database Username";
+
+else if(["host","hostname","server"].includes(key))
+    type = "Database Host";
+
+else if(["database","dbname"].includes(key))
+    type = "Database Name";
+
+else if(key === "port")
+    type = "Database Port";
 else if(key.includes("api")){
     type = "API Key";
 }
@@ -167,7 +181,12 @@ else if(key.includes("token")){
 else if(key.includes("secret")){
     type = "Secret";
 }
-
+if (
+    type === "Password" &&
+    /^[A-Za-z_][A-Za-z0-9_]*$/.test(value)
+) {
+    continue;
+}
     if(value.length < 4)
         continue;
 if(
@@ -178,6 +197,8 @@ if(
 ){
     continue;
 }
+if (/^[A-Za-z_][A-Za-z0-9_]*$/.test(value))
+    continue;
     findings.push({
 
         type,
@@ -193,6 +214,39 @@ if(
     });
 
 }
+const dbConfigRegex =
+/(host|server|dbname|database|user|username|password|port|sslmode)\s*=\s*["']?([^"'\n]+)/gi;
+
+for (const match of text.matchAll(dbConfigRegex)) {
+
+    let type = match[1].toLowerCase();
+
+if (type === "password")
+    type = "Password";
+else if (["host","server"].includes(type))
+    type = "Database Host";
+else if (["user","username"].includes(type))
+    type = "Database Username";
+else if (["database","dbname"].includes(type))
+    type = "Database Name";
+else if (type === "port")
+    type = "Database Port";
+else if (type === "sslmode")
+    type = "SSL Mode";
+
+findings.push({
+    type,
+    value: match[2].trim(),
+
+        label: "[DB_CONFIG]",
+
+        severity: "critical",
+
+        penalty: 20
+
+    });
+
+}
 
     patterns.forEach(pattern=>{
 
@@ -200,9 +254,15 @@ if(
 
         if(!matches) return;
 
-       matches.forEach(match=>{
-const value = match[0];
-    if(pattern.name==="Possible Secret"){
+      matches.forEach(match=>{
+
+const value = (match[2] || match[1] || match[0] || "").trim();
+
+
+if(!value)
+    return;
+
+if(pattern.name==="Possible Secret"){
 
         const hasUpper = /[A-Z]/.test(value);
         const hasLower = /[a-z]/.test(value);
@@ -243,8 +303,21 @@ if (type.toLowerCase().includes("token"))
 
 if (type.toLowerCase().includes("secret"))
     type = "Secret";
+if (
+    type === "Password" &&
+    /^(password|pass|passwd|pwd)$/i.test(value)
+)
+    return;
+   if (!value)
+    return;
 
+if (
+    type === "Password" &&
+    value.toLowerCase() === "password"
+)
+    return;
 findings.push({
+    
                 type,
 
                 value: value,
@@ -317,6 +390,7 @@ symbols>=2
 if(findings.some(f=>f.value===word)){
     return;
 }
+
         findings.push({
 
             type:"Possible Secret",
@@ -477,7 +551,6 @@ const highestSeverity = findings.reduce(
 
    findings.forEach(item => {
 
-    console.log(item.type, item.penalty);
 
     score=Math.max(0,score-Number(item.penalty||0));
 
@@ -905,13 +978,11 @@ document.addEventListener("paste", (e)=>{
     if(!text)
         return;
 
-    if(document.activeElement !== textarea){
+   if(document.activeElement === textarea)
+    return;
+e.preventDefault();
 
-        e.preventDefault();
-
-        textarea.focus();
-
-    }
+textarea.focus();
 
     textarea.value +=
         textarea.value

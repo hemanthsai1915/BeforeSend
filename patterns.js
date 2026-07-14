@@ -36,7 +36,7 @@ const patterns = [
     label: "[PASSWORD]",
     severity: "critical",
     penalty: 30,
-    regex: /\b(password|pwd|passwd)\s*(?:[:=]|->|=>|-->|\bis\b)\s*([^\s]+)/gi
+    regex: /\b(password|pwd|passwd|pin)\s*(?:[:=]|->|=>|-->|\bis\b)\s*([^\s]+)/gi
 },
 
 {
