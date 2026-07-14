@@ -40,7 +40,28 @@ BeforeSend
     <textarea
         id="inputText"
         placeholder="Do (Ctrl+ v) Paste anything before sharing... We'll scan it instantly.."></textarea>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
+<input
+    type="file"
+    id="imageInput"
+    accept="image/*"
+    hidden
+>
+
+<div class="imageTools">
+
+    <button id="imageBtn" class="imageAction">
+        <span class="material-symbols-rounded">image_search</span>
+        OCR Scan
+    </button>
+
+    <button id="blurBtn" class="imageAction secondary">
+        <span class="material-symbols-rounded">blur_on</span>
+        Blur Image
+    </button>
+
+</div>
     <div class="buttons">
 
        <button id="redactBtn">

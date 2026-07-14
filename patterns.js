@@ -36,7 +36,7 @@ const patterns = [
     label: "[PASSWORD]",
     severity: "critical",
     penalty: 30,
-    regex: /\b(password|pwd|passwd)\s*[:=]\s*([^\s]+)/gi
+    regex: /\b(password|pwd|passwd)\s*(?:[:=]|->|=>|-->|\bis\b)\s*([^\s]+)/gi
 },
 
 {
@@ -94,6 +94,36 @@ const patterns = [
     penalty: 2,
     regex: /\b[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\b/gi
 },
-
+{
+name:"Discord Token",
+regex:/mfa\.[\w-]{80,}|[\w-]{24}\.[\w-]{6}\.[\w-]{27}/g,
+label:"[DISCORD_TOKEN]",
+severity:"critical",
+penalty:20
+},{
+name:"GitHub Token",
+regex:/gh[pousr]_[A-Za-z0-9]{36,255}/g,
+label:"[GITHUB_TOKEN]",
+severity:"critical",
+penalty:20
+},{
+name:"Stripe Secret",
+regex:/sk_(live|test)_[A-Za-z0-9]{16,}/g,
+label:"[STRIPE_KEY]",
+severity:"critical",
+penalty:20
+},{
+name:"AWS Access Key",
+regex:/AKIA[0-9A-Z]{16}/g,
+label:"[AWS_KEY]",
+severity:"critical",
+penalty:20
+},{
+name:"Firebase Key",
+regex:/AIza[0-9A-Za-z\-_]{35}/g,
+label:"[FIREBASE_KEY]",
+severity:"critical",
+penalty:20
+},
 
 ];

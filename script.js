@@ -11,23 +11,37 @@ const statusBanner = document.getElementById("statusBanner");
 const redactBtn = document.getElementById("redactBtn");
 const copyBtn = document.getElementById("copyBtn");
 const clearBtn = document.getElementById("clearBtn");
-const ignoredWords = [
-
-    "function",
-    "const",
-    "let",
-    "var",
-    "return",
-    "document",
-    "window",
-    "textarea",
-    "scrollheight",
-    "style",
-    "height",
-    "width",
-    "padding",
-    "margin"
-
+const ignoredWords=[
+"function",
+"return",
+"const",
+"let",
+"var",
+"width",
+"height",
+"display",
+"padding",
+"margin",
+"background",
+"color",
+"border",
+"style",
+"document",
+"window",
+"textarea",
+"onclick",
+"scrollheight",
+"overflow",
+"hidden",
+"visible",
+"button",
+"class",
+"html",
+"body",
+"script",
+"input",
+"value",
+"textcontent"
 ];
 textarea.addEventListener("input", () => {
 
@@ -70,6 +84,8 @@ riskLevel.style.color="#94a3b8";
 );
 document.getElementById("summaryText").textContent =
 "Paste text to start scanning.";
+textarea.style.borderColor = "#3b82f6";
+textarea.style.boxShadow = "0 0 12px rgba(59,130,246,.25)";
         return;
 
     }
@@ -91,35 +107,32 @@ contextPatterns.forEach(pattern=>{
     const matches = [...text.matchAll(pattern.regex)];
 
     matches.forEach(match=>{
-        const value = match[0];
-        if(pattern.name === "Credit Card"){
+    const value = (match[2] || match[0]).trim();
 
-   const digits = value.replace(/\D/g, "");
+let type = pattern.name;
 
-    if(!isValidCreditCard(digits))
-        return;
+const t = type.toLowerCase();
 
-}
-if(
-
-findings.some(f=>
-
-f.value === (match[2] || match[0])
-
+if (["password","pass","passwd","pwd","pin"].includes(t))
+    type = "Password";
+else if (t.includes("api"))
+    type = "API Key";
+else if (t.includes("token"))
+    type = "Token";
+else if (t.includes("secret"))
+    type = "Secret";
+if (
+    findings.some(f =>
+        f.type === type &&
+        f.value === value
+    )
 )
-
-){
-
-return;
-
-}
+    return;
 
         findings.push({
 
-            type:pattern.name,
-
-            value:match[2] || match[0],
-
+            type,
+            value,
             label:pattern.label,
 
             severity:pattern.severity,
@@ -132,7 +145,54 @@ return;
 
 });
 
-   
+   const genericContext =
+/\b(password|passwd|pass|pwd|pin|secret|private[_-]?key|api[_-]?key|apikey|access[_-]?token|refresh[_-]?token|client[_-]?secret|authorization|bearer|jwt|session|cookie|db[_-]?password|database[_-]?url|connection[_-]?string)\b\s*[:=]\s*([^\s"'`;]+)/gi;
+
+for(const match of text.matchAll(genericContext)){
+
+    const value = match[2];
+    const key = match[1].toLowerCase();
+
+let type = key;
+
+if(["password","pass","passwd","pwd","pin"].includes(key)){
+    type = "Password";
+}
+else if(key.includes("api")){
+    type = "API Key";
+}
+else if(key.includes("token")){
+    type = "Token";
+}
+else if(key.includes("secret")){
+    type = "Secret";
+}
+
+    if(value.length < 4)
+        continue;
+if(
+    findings.some(f =>
+        f.type === type &&
+        f.value === value
+    )
+){
+    continue;
+}
+    findings.push({
+
+        type,
+
+        value,
+
+        label: "[SECRET]",
+
+        severity: "critical",
+
+        penalty: 20
+
+    });
+
+}
 
     patterns.forEach(pattern=>{
 
@@ -167,9 +227,25 @@ if(
 ){
     return;
 }
-    findings.push({
+if(findings.some(f=>f.value===value))
+    return;
 
-                type: pattern.name,
+  let type = pattern.name;
+
+if (["password","pass","passwd","pwd","pin"].includes(type.toLowerCase()))
+    type = "Password";
+
+if (type.toLowerCase().includes("api"))
+    type = "API Key";
+
+if (type.toLowerCase().includes("token"))
+    type = "Token";
+
+if (type.toLowerCase().includes("secret"))
+    type = "Secret";
+
+findings.push({
+                type,
 
                 value: value,
 
@@ -186,7 +262,7 @@ if(
         });
 
     });
-    const words = text.match(/[A-Za-z0-9!@#$%^&*()_+=\-]{12,}/g) || [];
+   const words=text.match(/[A-Za-z0-9_\-+=\/!@#$%^&*]{16,}/g)||[];
 
 
 words.forEach(word => {
@@ -233,10 +309,14 @@ if(
 if(
     !alreadyDetected &&
     word.length >= 12 &&
-        score>=3 &&
-digits+symbols>=2 
+       score===4 &&
+word.length>=20 &&
+digits>=3 &&
+symbols>=2
     ){
-
+if(findings.some(f=>f.value===word)){
+    return;
+}
         findings.push({
 
             type:"Possible Secret",
@@ -260,7 +340,10 @@ const seen=new Set();
 
 findings.forEach(item=>{
 
-    const key=item.type+"-"+item.value;
+  const key =
+    item.type.toLowerCase() +
+    "|" +
+    item.value.toLowerCase();
 
     if(!seen.has(key)){
 
@@ -318,30 +401,31 @@ function renderResults(findings){
 
     
 
-  let values="";
+ let values = "";
 
-        items.forEach(item=>{
+const uniqueValues = [...new Set(items.map(i => i.value))];
 
-       values += `
+uniqueValues.forEach(value => {
+
+    values += `
 <div class="findingRow">
 
 <span class="findingValue">
-${mask(item.value)}
+${mask(value)}
 </span>
 
 <button
 type="button"
 class="toggleReveal material-symbols-rounded"
-data-value="${item.value}"
+data-value="${value}"
 data-state="hidden">
 visibility
 </button>
 
 </div>
 `;
-    
 
-        });
+});
 
         li.innerHTML=`
 
@@ -395,7 +479,7 @@ const highestSeverity = findings.reduce(
 
     console.log(item.type, item.penalty);
 
-    score -= Number(item.penalty || 0);
+    score=Math.max(0,score-Number(item.penalty||0));
 
 });
 
@@ -416,6 +500,8 @@ const highestSeverity = findings.reduce(
         riskLevel.textContent="High";
 
         riskLevel.style.color="#ef4444";
+        textarea.style.borderColor="#ef4444";
+textarea.style.boxShadow="0 0 20px rgba(239,68,68,.35)";
 
         setBanner(
             "danger",
@@ -431,6 +517,8 @@ const highestSeverity = findings.reduce(
         riskLevel.textContent="Medium";
 
         riskLevel.style.color="#f59e0b";
+        textarea.style.borderColor="#f59e0b";
+textarea.style.boxShadow="0 0 16px rgba(245,158,11,.25)";
 
         setBanner(
             "warning",
@@ -446,6 +534,8 @@ const highestSeverity = findings.reduce(
         riskLevel.textContent="Low";
 
         riskLevel.style.color="#22c55e";
+        textarea.style.borderColor="#22c55e";
+textarea.style.boxShadow="0 0 14px rgba(34,197,94,.2)";
 
         setBanner(
             "safe",
@@ -466,27 +556,42 @@ if(findings.length===0){
 }
 else{
 
-   const counts = {};
+   const highest = findings.some(f=>f.severity==="critical")
+    ? "Critical"
+    : findings.some(f=>f.severity==="warning")
+        ? "Warning"
+        : "Info";
 
-findings.forEach(item=>{
+let html = `
+<b>${findings.length} sensitive item(s) detected.</b><br><br>
 
-    counts[item.type] =
-        (counts[item.type] || 0) + 1;
+Highest Risk:
+<b>${highest}</b><br><br>
 
-});
+Recommendation:<br>
+• Use <b>Redact All</b> before sharing.
+`;
+if(findings.some(f=>f.type==="Password")){
+    html += "<br>• Passwords should never be shared.";
+}
 
-let html = "";
+if(findings.some(f=>f.type==="API Key")){
+    html += "<br>• Revoke exposed API keys.";
+}
 
-html += `Detected ${Object.keys(counts).length} categories.<br><br>`;
+if(findings.some(f=>f.type==="Bearer Token")){
+    html += "<br>• Tokens should be regenerated.";
+}
 
-Object.entries(counts).forEach(([type,count])=>{
+if(findings.some(f=>f.type==="Credit Card")){
+    html += "<br>• Remove payment card details.";
+}
 
-    html += `• ${type} (${count})<br>`;
-
-});
+if(findings.some(f=>f.type==="Email")){
+    html += "<br>• Remove unnecessary personal emails.";
+}
 
 summary.innerHTML = html;
-
 }
 
 }
@@ -533,6 +638,14 @@ function mask(value){
             + value.substring(8);
 
     }
+    if(value.startsWith("sk-"))
+    return value.substring(0,6)+"****************";
+
+if(value.startsWith("ghp_"))
+    return value.substring(0,8)+"****************";
+
+if(value.startsWith("AKIA"))
+    return value.substring(0,4)+"************";
 
     if(value.length <= 8){
 
@@ -599,13 +712,7 @@ function redactAll(){
 
 findings.forEach(item=>{
 
-    text = text.replaceAll(
-
-        item.value,
-
-        item.label || "[SECRET]"
-
-    );
+    text = text.split(item.value).join(item.label);
 
 });
     
@@ -657,6 +764,7 @@ function updateButtons(){
 function clearAll(){
 
     textarea.value = "";
+    ocrCount = 0;
 
     autoResize();
 
@@ -739,3 +847,248 @@ eye.textContent = "visibility";
     }
 
 });
+
+// Auto Type Detector
+
+document.addEventListener("keydown", (e) => {
+
+    // Ignore shortcuts
+    if (e.ctrlKey || e.metaKey || e.altKey)
+        return;
+
+    // Already typing in the textarea
+    if (document.activeElement === textarea)
+        return;
+
+    // Ignore function/navigation keys
+    if (e.key.length !== 1)
+        return;
+
+    // Ignore typing in another input
+    const tag = document.activeElement.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA")
+        return;
+
+    e.preventDefault();
+
+    textarea.focus();
+
+    textarea.value += e.key;
+
+    autoResize();
+    scan();
+
+});
+
+
+//paste text or images using ctrl+v
+document.addEventListener("paste", (e)=>{
+
+    const items = e.clipboardData.items;
+
+    for(const item of items){
+
+        if(item.type.startsWith("image/")){
+
+            const file = item.getAsFile();
+
+            runOCR(file);
+
+            return;
+
+        }
+
+    }
+
+    const text = e.clipboardData.getData("text");
+
+    if(!text)
+        return;
+
+    if(document.activeElement !== textarea){
+
+        e.preventDefault();
+
+        textarea.focus();
+
+    }
+
+    textarea.value +=
+        textarea.value
+            ? "\n"+text
+            : text;
+
+    autoResize();
+
+    scan();
+
+});
+
+
+//drag and drop text
+document.addEventListener("dragover", (e) => {
+
+    e.preventDefault();
+
+    textarea.classList.add("dragActive");
+
+});
+
+document.addEventListener("drop", () => {
+
+    textarea.classList.remove("dragActive");
+
+});
+
+document.addEventListener("dragend", () => {
+
+    textarea.classList.remove("dragActive");
+
+});
+
+document.addEventListener("drop", async (e) => {
+
+    e.preventDefault();
+
+    textarea.classList.remove("dragActive");
+
+    const items = e.dataTransfer.items;
+
+    if (!items || items.length === 0)
+        return;
+
+    // ---------- Image ----------
+    const imageItem = [...items].find(item =>
+        item.kind === "file" &&
+        item.type.startsWith("image/")
+    );
+
+    if (imageItem) {
+
+        const file = imageItem.getAsFile();
+
+        runOCR(file);
+
+        return;
+
+    }
+
+    // ---------- Text ----------
+    const text = e.dataTransfer.getData("text");
+
+    if (text) {
+
+        textarea.value +=
+            textarea.value ? "\n" + text : text;
+
+        autoResize();
+
+        scan();
+
+        textarea.focus();
+
+    }
+
+});
+
+let ocrCount = 0;
+async function runOCR(file){
+
+    if(!file)
+        return;
+
+    imageBtn.disabled = true;
+
+    imageBtn.innerHTML = `
+        <span class="material-symbols-rounded spinner">
+            autorenew
+        </span>
+
+        <span id="ocrStatus">
+            Starting...
+        </span>
+    `;
+
+    showToast("Extracting text from image...");
+
+    try{
+
+        const result = await Tesseract.recognize(
+    file,
+    "eng",
+    {
+       logger: (m) => {
+
+    const status = document.getElementById("ocrStatus");
+
+    if (!status)
+        return;
+
+    status.textContent =
+        `${m.status} ${Math.round((m.progress || 0) * 100)}%`;
+
+}
+    }
+);
+
+        const text = result.data.text.trim();
+
+        if(!text){
+
+            showToast(
+    "No readable text found in the image."
+);
+
+        }else{
+
+          textarea.value +=
+    (textarea.value ? "\n\n" : "") +
+    `──────── OCR Result ${++ocrCount} ────────\n` +
+    text;
+
+
+            autoResize();
+            scan();
+            textarea.scrollTop = textarea.scrollHeight;
+textarea.focus();
+            showToast(
+    `OCR completed • ${text.length} characters extracted`
+);
+
+        }
+
+    }catch(err){
+
+        console.error(err);
+
+        showToast("OCR failed.");
+
+    }finally{
+
+        imageBtn.disabled = false;
+
+        imageBtn.innerHTML = `
+            <span class="material-symbols-rounded">
+                image_search
+            </span>
+            OCR Scan
+        `;
+
+        imageInput.value = "";
+
+    }
+
+
+}
+
+//upload image scan text in it
+imageBtn.onclick = () => imageInput.click();
+
+imageInput.onchange = (e)=>{
+
+    const file = e.target.files[0];
+
+    if(file)
+        runOCR(file);
+
+};
