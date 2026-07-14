@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BeforeSend</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20,500,1,0">
+</head>
+
+<body>
+
+<div class="container">
+
+    <header>
+
+      <h1>
+<span class="material-symbols-rounded">shield</span>
+BeforeSend
+</h1>
+
+        <p>
+            Check if your text is safe before sharing it.
+        </p>
+
+    </header>
+
+    <div id="statusBanner" class="status safe">
+
+        🟢 Safe to Share
+
+    </div>
+
+    <textarea
+        id="inputText"
+        placeholder="Do (Ctrl+ v) Paste anything before sharing... We'll scan it instantly.."></textarea>
+
+    <div class="buttons">
+
+       <button id="redactBtn">
+<span class="material-symbols-rounded">ink_eraser</span>
+Redact All
+</button>
+
+        <button id="copyBtn">
+<span class="material-symbols-rounded">content_copy</span>
+Copy
+</button>
+
+       <button id="clearBtn">
+<span class="material-symbols-rounded">delete</span>
+Clear
+</button>
+
+    </div>
+
+    <div class="stats">
+
+        <div class="card">
+
+            <span id="privacyScore">100</span>
+
+            <label>Privacy Score</label>
+
+        </div>
+        <div class="card">
+
+    <span id="riskLevel">Low</span>
+
+    <label>Risk</label>
+
+</div>
+
+        <div class="card">
+
+            <span id="issueCount">0</span>
+
+            <label>Issues</label>
+
+        </div>
+
+        <div class="card">
+
+            <span id="wordCount">0</span>
+
+            <label>Words</label>
+
+        </div>
+
+        <div class="card">
+
+            <span id="charCount">0</span>
+
+            <label>Characters</label>
+
+        </div>
+
+    </div>
+<div class="summary">
+
+    <h3>Scan Summary</h3>
+
+    <p id="summaryText">
+
+        No scan yet.
+
+    </p>
+
+</div>
+    <section class="results">
+
+        <h2>Detected Items</h2>
+
+        <ul id="resultsList">
+
+            <li class="safe">
+                Paste text to begin scanning.
+            </li>
+
+        </ul>
+
+    </section>
+
+    <footer>
+
+       <span class="material-symbols-rounded">
+shield_lock
+</span>
+
+Everything happens locally in your browser.
+
+    </footer>
+
+</div>
+
+<script src="contextPatterns.js"></script>
+<script src="patterns.js"></script>
+<script src="script.js"></script>
+
+</body>
+
+</html>
